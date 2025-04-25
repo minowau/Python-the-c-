@@ -1,0 +1,28 @@
+pythonpp/                      # Root directory of the project
+├── compiler/                   # Compiler-related files (lexer, parser, etc.)
+│   ├── ast/                    # Abstract Syntax Tree (AST) related files
+│   │   └── nodes.py            # AST node definitions
+│   ├── codegen/                # Code generation files (LLVM backend)
+│   │   └── llvm_gen.py         # LLVM code generation logic
+│   ├── lexer.py                # Lexer to tokenize Python++ code
+│   ├── parser.py               # Parser to build the abstract syntax tree
+│   ├── type_checker.py         # Static type checker for Python++ code
+│   └── utils.py                # Utility functions for the compiler
+├── runtime/                    # Runtime environment (memory, tensor handling, etc.)
+│   ├── memory.rs               # Memory management in Rust
+│   ├── tensor.rs               # Tensor handling in Rust
+│   └── stdlib.pypp             # Standard library in Python++
+├── cli/                        # Command-line interface (REPL, compiler CLI, etc.)
+│   ├── repl.py                 # REPL (Read-Eval-Print Loop) for Python++
+│   └── compiler_cli.py         # CLI for compiling and running Python++ code
+├── examples/                   # Example Python++ programs
+│   └── hello_world.pypp        # Hello World example in Python++
+├── tests/                      # Test cases
+│   ├── test_parser.py          # Tests for the parser
+│   └── test_codegen.py         # Tests for the code generation
+├── docs/                       # Documentation files
+│   ├── syntax.md               # Language syntax documentation
+│   └── roadmap.md              # Daily progress and project roadmap
+├── README.md                   # Project overview and goals
+├── pyproject.toml              # Build configuration for Python and Rust integration
+└── .gitignore                  # Git ignore file to exclude unnecessary files
