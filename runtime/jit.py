@@ -98,12 +98,14 @@ class JITCompiler:
                          node: Dict[str, Any],
                          symbol_table: Dict[str, ir.Value]) -> ir.Value:
         """Generate IR for AST node."""
+        # TODO: Add handling for more AST node types (e.g., function calls, assignments)
         if node['type'] == 'BinaryOp':
             return self._generate_binary_op_ir(builder, node, symbol_table)
         elif node['type'] == 'Literal':
             return self._generate_literal_ir(builder, node)
         elif node['type'] == 'Variable':
             return self._generate_variable_ir(builder, node, symbol_table)
+        # TODO: Add IR generation for complex types (lists, dicts, objects)
         else:
             raise Exception(f"Unsupported node type for JIT: {node['type']}")
     
@@ -154,6 +156,12 @@ class JITCompiler:
             return ir.DoubleType()
         elif type_info.name == 'bool':
             return ir.IntType(1)
+        # Placeholder for complex types
+        elif type_info.name in ['list', 'dict', 'object', 'str']: # Added str as well
+            # TODO: Implement proper handling for complex types (e.g., pointers to structs)
+            # For now, raise an error or return a placeholder (like void pointer)
+            # return ir.IntType(8).as_pointer() # Example: void*
+            raise Exception(f"JIT compilation for complex type '{type_info.name}' not yet implemented.")
         else:
             raise Exception(f"Unsupported type for JIT: {type_info.name}")
     

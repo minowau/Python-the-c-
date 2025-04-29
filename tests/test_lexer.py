@@ -1,6 +1,7 @@
 import unittest
 from compiler.lexer import Lexer, Token, TokenType
 
+
 class TestLexer(unittest.TestCase):
     def setUp(self):
         self.lexer = Lexer()

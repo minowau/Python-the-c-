@@ -65,6 +65,14 @@ class TypeSystem:
                 methods={},
                 fields={}
             ),
+            'None': TypeInfo( # Add NoneType
+                name='None',
+                cpp_type='std::nullptr_t', # Or appropriate C++ representation
+                python_type=type(None),
+                is_primitive=True,
+                methods={},
+                fields={}
+            ),
             'tensor': TypeInfo(
                 name='tensor',
                 cpp_type='torch::Tensor',
@@ -86,6 +94,15 @@ class TypeSystem:
                 shape=None,
                 dtype='float32',
                 device='cpu'
+            ),
+            # Add a generic 'Any' type for flexibility
+            'Any': TypeInfo(
+                name='Any',
+                cpp_type='std::any', # Example C++ equivalent
+                python_type=Any,
+                is_primitive=False,
+                methods={},
+                fields={}
             ),
             'half': TypeInfo(
                 name='half',
@@ -116,12 +133,21 @@ class TypeSystem:
             return self._infer_literal_type(node)
         elif node['type'] == 'BinaryOp':
             return self._infer_binary_op_type(node, context)
-        elif node['type'] == 'Variable':
+        elif node['type'] == 'Identifier': # Match parser AST type
             return self._infer_variable_type(node, context)
+        elif node['type'] == 'UnaryOp':
+            return self._infer_unary_op_type(node, context)
         elif node['type'] == 'FunctionCall':
             return self._infer_call_type(node, context)
+        elif node['type'] == 'FunctionDefinition': # Added for completeness
+            # Type inference for function definition itself might return a FunctionType
+            # This needs more context about how functions are stored/represented
+            pass # Placeholder
         else:
-            raise Exception(f"Cannot infer type for node: {node['type']}")
+            # Return 'Any' or raise error for unhandled types
+            # raise Exception(f"Cannot infer type for node: {node['type']}")
+            print(f"[Warning] Cannot infer type for node: {node['type']}, returning Any")
+            return self.types.get('Any', TypeInfo(name='Any', cpp_type='std::any', python_type=Any, is_primitive=False, methods={}, fields={})) # Fallback
     
     def _infer_literal_type(self, node: Dict[str, Any]) -> TypeInfo:
         """Infer type of literal value."""
@@ -134,6 +160,8 @@ class TypeSystem:
             return self.types['bool']
         elif isinstance(value, str):
             return self.types['str']
+        elif value is None:
+             return self.types['None']
         else:
             raise Exception(f"Unsupported literal type: {type(value)}")
     
@@ -161,8 +189,28 @@ class TypeSystem:
             return self.types['int']
         elif node['operator'] in ['==', '!=', '<', '>', '<=', '>=']:
             return self.types['bool']
+        elif node['operator'] in ['and', 'or']:
+             # Assume boolean logic returns bool
+             return self.types['bool']
         else:
-            raise Exception(f"Invalid operation between types: {left_type.name} and {right_type.name}")
+            raise Exception(f"Invalid operation '{node['operator']}' between types: {left_type.name} and {right_type.name}")
+
+    def _infer_unary_op_type(self, node: Dict[str, Any], context: Dict[str, TypeInfo]) -> TypeInfo:
+        """Infer result type of unary operation."""
+        operand_type = self.infer_type(node['operand'], context)
+        op = node['operator']
+
+        if op == 'not':
+            return self.types['bool']
+        elif op in ['+', '-']:
+            # Assume numeric unary ops preserve type (int->int, float->float)
+            if operand_type.name in ['int', 'float', 'tensor', 'half']:
+                return operand_type
+            else:
+                raise Exception(f"Unary '{op}' not supported for type {operand_type.name}")
+        # TODO: Add other unary ops like '~'
+        else:
+            raise Exception(f"Unsupported unary operator: {op}")
     
     def _infer_variable_type(self, node: Dict[str, Any], context: Dict[str, TypeInfo]) -> TypeInfo:
         """Infer type of variable reference."""
@@ -170,6 +218,11 @@ class TypeSystem:
         if var_name in context:
             return context[var_name]
         else:
+            # Check for built-in functions/types if not in local context
+            if var_name in self.types:
+                 # This might need refinement - is it a type name or a function?
+                 # For now, assume it refers to the type itself if used as a variable
+                 return self.types[var_name]
             raise Exception(f"Undefined variable: {var_name}")
     
     def _infer_call_type(self, node: Dict[str, Any], context: Dict[str, TypeInfo]) -> TypeInfo:
@@ -256,3 +309,20 @@ class TypeSystem:
             result.shape = (left.shape[0], right.shape[1])
             
         return result
+    def add(self, other: 'Tensor') -> 'Tensor':
+            # Basic implementation, replace with optimized version
+            if self.shape != other.shape:
+                raise ValueError("Shapes must match for element-wise addition")
+            # Placeholder for actual optimized operation
+            result_data = np.add(self.data, other.data) # Example using numpy
+            return Tensor(result_data)
+
+    def multiply(self, other: 'Tensor') -> 'Tensor':
+            # Basic implementation, replace with optimized version
+            if self.shape != other.shape:
+                raise ValueError("Shapes must match for element-wise multiplication")
+            # Placeholder for actual optimized operation
+            result_data = np.multiply(self.data, other.data) # Example using numpy
+            return Tensor(result_data)
+
+        # TODO: Add more optimized tensor operations (matmul, transpose, etc.)

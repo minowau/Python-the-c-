@@ -83,21 +83,35 @@ class RuntimeExecutor:
         else:
             raise Exception(f"Unsupported tensor operator: {operator}")
     
-    def _execute_numeric_op(self, operator: str, left: Any, right: Any) -> Any:
-        """Execute standard numeric operation."""
-        op_map = {
-            '+': lambda x, y: x + y,
-            '-': lambda x, y: x - y,
-            '*': lambda x, y: x * y,
-            '/': lambda x, y: x / y,
-            '==': lambda x, y: x == y,
-            '!=': lambda x, y: x != y,
-            '<': lambda x, y: x < y,
-            '>': lambda x, y: x > y,
-            '<=': lambda x, y: x <= y,
-            '>=': lambda x, y: x >= y
-        }
-        return op_map[operator](left, right)
+    def _execute_numeric_op(self, op: str, left: Any, right: Any) -> Any:
+        """Execute standard Python binary operation."""
+        # --- Standard Python Operations ---
+        # Basic arithmetic
+        if op == '+': return left + right
+        if op == '-': return left - right
+        if op == '*': return left * right
+        if op == '/': return left / right # Consider integer vs float division
+        if op == '//': return left // right
+        if op == '%': return left % right
+        if op == '**': return left ** right
+        # Comparison
+        if op == '==': return left == right
+        if op == '!=': return left != right
+        if op == '<': return left < right
+        if op == '<=': return left <= right
+        if op == '>': return left > right
+        if op == '>=': return left >= right
+        # Logical (short-circuiting handled by interpreter structure if needed)
+        if op == 'and': return left and right
+        if op == 'or': return left or right
+        # Bitwise (Add if needed)
+        # if op == '&': return left & right
+        # if op == '|': return left | right
+        # if op == '^': return left ^ right
+        # if op == '<<': return left << right
+        # if op == '>>': return left >> right
+
+        raise NotImplementedError(f"Binary operator '{op}' not implemented for types {type(left)} and {type(right)}")
     
     def _execute_function_call(self, node: Dict[str, Any], 
                               context: ExecutionContext) -> Any:

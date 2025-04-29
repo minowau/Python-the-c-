@@ -14,6 +14,12 @@ class MemoryManager:
         
         # Configure Python's GC for our hybrid approach
         gc.disable()  # We'll manage collections explicitly
+
+        # --- GC Tuning Parameters (Placeholders) ---
+        self.gc_threshold_gen0 = 10000 # Example: Collect gen0 after 10k allocations
+        self.gc_threshold_gen1 = 10 # Example: Collect gen1 after 10 gen0 collections
+        self.promotion_age_threshold = 3 # Example: Promote after surviving 3 gen0 collections
+        # --- End GC Tuning Parameters ---
     
     def allocate(self, size: int, type_info: Dict[str, Any]) -> int:
         """Allocate memory from pool.
