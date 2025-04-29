@@ -1,0 +1,17 @@
+
+x: int = 42
+y: float = 3.14
+
+# Function with type annotations
+def add(a: int, b: int) -> int:
+    return a + b
+
+# String with type annotation
+message: str = "Hello Python++!"
+
+# Demonstrate expression evaluation
+result: int = add(x, 10) * 2
+
+# Print results
+print(message)
+print(f"Result: {result}")

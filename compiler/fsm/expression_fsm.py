@@ -1,13 +1,15 @@
 from typing import Dict, Any, Optional
 from .base_fsm import BaseFSM
+from .type_fsm import TypeFSM
 
 class ExpressionFSM(BaseFSM):
-    """FSM for parsing expressions and operators."""
+    """FSM for parsing Python++ expressions with type annotations."""
     
     def __init__(self):
         super().__init__()
         self.operand_stack = []
         self.operator_stack = []
+        self.type_fsm = TypeFSM()
     
     def _handle_initial(self, token: Dict[str, Any]) -> None:
         """Handle initial state - expect operand or unary operator."""
@@ -43,16 +45,32 @@ class ExpressionFSM(BaseFSM):
                 self.operator_stack.pop()
             else:
                 self._set_error("Unmatched right parenthesis")
+        elif token['type'] == 'COLON':
+            # Handle type annotation
+            self.state = 'expect_type'
         else:
             self._finalize_expression()
     
     def _handle_expect_operand(self, token: Dict[str, Any]) -> None:
         """Handle state expecting an operand."""
-        if token['type'] in ['NUMBER', 'STRING', 'IDENTIFIER']:
+        if token['type'] == 'NUMBER':
             self.operand_stack.append({
                 'type': 'Literal',
-                'value': token['value'],
-                'token_type': token['type']
+                'value': float(token['value']) if '.' in token['value'] else int(token['value']),
+                'token_type': 'NUMBER'
+            })
+            self.state = 'expect_operator'
+        elif token['type'] == 'STRING':
+            self.operand_stack.append({
+                'type': 'Literal',
+                'value': token['value'][1:-1],  # Remove quotes
+                'token_type': 'STRING'
+            })
+            self.state = 'expect_operator'
+        elif token['type'] == 'IDENTIFIER':
+            self.operand_stack.append({
+                'type': 'Identifier',
+                'name': token['value']
             })
             self.state = 'expect_operator'
         elif token['type'] == 'LPAREN':
@@ -63,32 +81,51 @@ class ExpressionFSM(BaseFSM):
     def _precedence(self, operator: str) -> int:
         """Get operator precedence level."""
         precedence = {
-            '||': 1,
-            '&&': 2,
-            '==': 3, '!=': 3,
-            '<': 4, '>': 4, '<=': 4, '>=': 4,
-            '+': 5, '-': 5,
-            '*': 6, '/': 6, '%': 6,
-            '**': 7
+            'or': 1,
+            'and': 2,
+            'in': 3, 'not in': 3, 'is': 3, 'is not': 3,
+            '==': 4, '!=': 4,
+            '<': 5, '>': 5, '<=': 5, '>=': 5,
+            '|': 6,
+            '^': 7,
+            '&': 8,
+            '<<': 9, '>>': 9,
+            '+': 10, '-': 10,
+            '*': 11, '/': 11, '//' : 11, '%': 11,
+            '**': 12
         }
         return precedence.get(operator, 0)
     
     def _apply_operator(self) -> None:
         """Apply operator to operands on stack."""
-        if len(self.operand_stack) < 2 or not self.operator_stack:
-            self._set_error("Invalid expression")
+        if not self.operator_stack:
             return
             
         operator = self.operator_stack.pop()
-        right = self.operand_stack.pop()
-        left = self.operand_stack.pop()
-        
-        self.operand_stack.append({
-            'type': 'BinaryExpression',
-            'operator': operator,
-            'left': left,
-            'right': right
-        })
+        if operator in ['not', '+', '-', '~']:
+            # Unary operator
+            if len(self.operand_stack) < 1:
+                self._set_error("Not enough operands for unary operator")
+                return
+            operand = self.operand_stack.pop()
+            self.operand_stack.append({
+                'type': 'UnaryOperation',
+                'operator': operator,
+                'operand': operand
+            })
+        else:
+            # Binary operator
+            if len(self.operand_stack) < 2:
+                self._set_error("Not enough operands for binary operator")
+                return
+            right = self.operand_stack.pop()
+            left = self.operand_stack.pop()
+            self.operand_stack.append({
+                'type': 'BinaryOperation',
+                'operator': operator,
+                'left': left,
+                'right': right
+            })
     
     def _finalize_expression(self) -> None:
         """Finalize expression parsing."""
