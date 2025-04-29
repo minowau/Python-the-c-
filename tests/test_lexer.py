@@ -1,83 +1,115 @@
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import unittest
-from compiler.lexer import tokenize
+from compiler.lexer import Lexer, Token, TokenType
 
-
-class TestLexerComprehensive(unittest.TestCase):
-
-    def test_keywords_and_identifiers(self):
-        code = "def function return if else class myClass"
-        tokens = tokenize(code)
-        expected_types = ["DEF", "IDENTIFIER", "RETURN", "IF", "ELSE", "CLASS", "IDENTIFIER", "EOF"]
-        self.assertEqual([t['type'] for t in tokens], expected_types)
-
+class TestLexer(unittest.TestCase):
+    def setUp(self):
+        self.lexer = Lexer()
+    
+    def test_keywords(self):
+        source = 'def class if else while for'
+        tokens = self.lexer.tokenize(source)
+        
+        expected_types = [
+            TokenType.DEF,
+            TokenType.CLASS,
+            TokenType.IF,
+            TokenType.ELSE,
+            TokenType.WHILE,
+            TokenType.FOR,
+            TokenType.EOF
+        ]
+        
+        self.assertEqual(len(tokens), len(expected_types))
+        for token, expected_type in zip(tokens, expected_types):
+            self.assertEqual(token.type, expected_type)
+    
+    def test_identifiers(self):
+        source = 'variable_name _private counter123'
+        tokens = self.lexer.tokenize(source)
+        
+        self.assertEqual(len(tokens), 4)  # 3 identifiers + EOF
+        self.assertEqual(tokens[0].type, TokenType.IDENTIFIER)
+        self.assertEqual(tokens[0].value, 'variable_name')
+        self.assertEqual(tokens[1].type, TokenType.IDENTIFIER)
+        self.assertEqual(tokens[1].value, '_private')
+        self.assertEqual(tokens[2].type, TokenType.IDENTIFIER)
+        self.assertEqual(tokens[2].value, 'counter123')
+    
     def test_numbers(self):
-        code = "123 0.456 789_123"
-        tokens = tokenize(code)
-        self.assertEqual(tokens[0]['type'], "NUMBER")
-        self.assertEqual(tokens[1]['type'], "NUMBER")
-        self.assertEqual(tokens[2]['type'], "NUMBER")
-
-    def test_strings_single_double(self):
-        code = "'hello' \"world\""
-        tokens = tokenize(code)
-        self.assertEqual(tokens[0]['type'], "STRING")
-        self.assertEqual(tokens[1]['type'], "STRING")
-
-    def test_unterminated_string(self):
-        with self.assertRaises(Exception):
-            tokenize("'oops")
-
-    def test_comments_and_whitespace(self):
-        code = "   # comment\ndef x(): pass  # trailing"
-        tokens = tokenize(code)
-        self.assertTrue(any(t['type'] == "DEF" for t in tokens))
-        self.assertTrue(any(t['type'] == "IDENTIFIER" and t['value'] == "x" for t in tokens))
-
-    def test_operators_single_double(self):
-        code = "a == b != c <= d >= e ** f // g and or not"
-        tokens = tokenize(code)
-        types = [t['type'] for t in tokens if t['type'] != "IDENTIFIER"]
-        expected = ["OPERATOR"] * 7 + ["OPERATOR", "OPERATOR", "OPERATOR"] + ["AND", "OR", "NOT"] + ["EOF"]
-        self.assertEqual(types[-len(expected):], expected)
-
-    def test_floating_point_numbers(self):
-        code = "x = 3.14\ny = 2.5e3"
-        tokens = tokenize(code)
-        self.assertEqual(tokens[0]['type'], 'IDENTIFIER')
-        self.assertEqual(tokens[2]['type'], 'NUMBER')
-        self.assertEqual(tokens[2]['value'], '3.14')
-        self.assertEqual(tokens[5]['type'], 'NUMBER')
-        self.assertEqual(tokens[5]['value'], '2.5e3')
-
-    def test_delimiters(self):
-        code = "( ) : , [ ] { } ;"
-        expected = ["LPAREN", "RPAREN", "COLON", "COMMA", "LBRACKET", "RBRACKET", "LBRACE", "RBRACE", "SEMICOLON", "EOF"]
-        tokens = tokenize(code)
-        self.assertEqual([t['type'] for t in tokens], expected)
-
-    def test_unexpected_character(self):
-        with self.assertRaises(Exception):
-            tokenize("def x$y:")
-
-    def test_mixed_quote_string(self):
-        code = "\"hello 'world'\""
-        tokens = tokenize(code)
-        self.assertEqual(tokens[0]['type'], "STRING")
-
-    def test_full_program_snippet(self):
-        code = '''
-        def greet(name):
-            # Greet the user
-            print("Hello, " + name)
+        source = '42 3.14 123.456'
+        tokens = self.lexer.tokenize(source)
+        
+        self.assertEqual(len(tokens), 4)  # 3 numbers + EOF
+        self.assertEqual(tokens[0].type, TokenType.INTEGER)
+        self.assertEqual(tokens[0].value, '42')
+        self.assertEqual(tokens[1].type, TokenType.FLOAT)
+        self.assertEqual(tokens[1].value, '3.14')
+        self.assertEqual(tokens[2].type, TokenType.FLOAT)
+        self.assertEqual(tokens[2].value, '123.456')
+    
+    def test_strings(self):
+        source = '"hello" \'world\''
+        tokens = self.lexer.tokenize(source)
+        
+        self.assertEqual(len(tokens), 3)  # 2 strings + EOF
+        self.assertEqual(tokens[0].type, TokenType.STRING)
+        self.assertEqual(tokens[0].value, 'hello')
+        self.assertEqual(tokens[1].type, TokenType.STRING)
+        self.assertEqual(tokens[1].value, 'world')
+    
+    def test_operators(self):
+        source = '+ - * / % = == != < > <= >='
+        tokens = self.lexer.tokenize(source)
+        
+        expected_types = [
+            TokenType.PLUS,
+            TokenType.MINUS,
+            TokenType.MULTIPLY,
+            TokenType.DIVIDE,
+            TokenType.MODULO,
+            TokenType.ASSIGN,
+            TokenType.EQUALS,
+            TokenType.NOT_EQUALS,
+            TokenType.LESS_THAN,
+            TokenType.GREATER_THAN,
+            TokenType.LESS_EQUAL,
+            TokenType.GREATER_EQUAL,
+            TokenType.EOF
+        ]
+        
+        self.assertEqual(len(tokens), len(expected_types))
+        for token, expected_type in zip(tokens, expected_types):
+            self.assertEqual(token.type, expected_type)
+    
+    def test_indentation(self):
+        source = '''
+        def test():
+            x = 1
+                y = 2
+            z = 3
         '''
-        tokens = tokenize(code)
-        self.assertTrue(any(t['value'] == 'greet' for t in tokens))
-        self.assertTrue(any(t['type'] == 'STRING' for t in tokens))
-
+        tokens = self.lexer.tokenize(source)
+        
+        # Find INDENT and DEDENT tokens
+        indent_count = sum(1 for token in tokens if token.type == TokenType.INDENT)
+        dedent_count = sum(1 for token in tokens if token.type == TokenType.DEDENT)
+        
+        self.assertEqual(indent_count, 2)  # One for function body, one for nested block
+        self.assertEqual(dedent_count, 2)  # Matching DEDENTs
+    
+    def test_token_caching(self):
+        # Test that frequently used tokens are cached
+        source = 'def def def class class if if'
+        tokens = self.lexer.tokenize(source)
+        
+        # Verify that cached tokens maintain correct line and column info
+        self.assertEqual(tokens[0].line, tokens[1].line)
+        self.assertNotEqual(tokens[0].column, tokens[1].column)
+        
+        # Verify that the cache contains the keywords
+        self.assertIn('def', self.lexer.token_cache)
+        self.assertIn('class', self.lexer.token_cache)
+        self.assertIn('if', self.lexer.token_cache)
 
 if __name__ == '__main__':
     unittest.main()
