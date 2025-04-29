@@ -1,0 +1,41 @@
+
+
+# Function definition with type annotations
+func greet(name: string) -> string {
+    return f"Hello, {name}!"
+}
+
+# Class definition with member function
+class Greeter {
+    private:
+        message: string
+    
+    public:
+        func __init__(self, msg: string) {
+            self.message = msg
+        }
+        
+        func say_hello(self, name: string) -> string {
+            return f"{self.message}, {name}!"
+        }
+}
+
+# Main program
+func main() {
+    # Basic variable usage
+    name: string = "World"
+    print(greet(name))
+    
+    # Class instantiation and usage
+    greeter: Greeter = Greeter("Welcome")
+    print(greeter.say_hello("Python++"))
+    
+    # Basic arithmetic and type inference
+    x := 10
+    y := 20
+    sum := x + y
+    print(f"Sum of {x} and {y} is {sum}")
+}
+
+# Entry point
+main()
